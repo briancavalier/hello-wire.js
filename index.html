@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Hello wire()d!</title>
+	<script type="text/javascript">
+		// Configure AMD loader paths
+		require = {
+			baseUrl: 'js',
+			pluginPath: '.',
+			paths: {
+				wire: 'wire'
+			}
+		};
+	</script>
+	<!-- AMD Loader, in this case curl.js -->
+	<script type="text/javascript" src="js/curl.js"></script>
+	
+	<!-- Wire the Hello wire()d spec to create the app -->
+	<script type="text/javascript">
+		require(['wire!hello-wired-spec']);
+	</script>
+</head>
+
+<body>
+	<header>
+		<!-- Message will go here -->
+		<h1 id="hello"></h1>
+	</header>
+</body>
+</html>
