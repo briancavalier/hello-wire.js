@@ -157,3 +157,13 @@ Parameters don't have to be references.  For example, we could have just as easi
 	sayHello: "I haz been wired"
 	
 ## Finally, a Note on Order
+
+Wiring specs are *declarative*, and thus order of things in a wiring spec doesn't matter.  For example, in this example, the `wire/dom` plugin was declared after the `{ $ref: 'dom!hello' }` reference.  That's no problem.  Wire.js ensures that the plugin is ready before resolving the DOM Node reference.
+
+Also notice that we didn't have to write any code to wait for DOM Ready.  Again, wire.js ensures that the DOM Node reference is resolved only after the DOM is indeed ready.
+
+As you can imagine, there is an implicit ordering to the things that happen, even in this simple Hello Wire example.  The `wire/dom` plugin must be loaded and ready before the DOM Node reference can be resolved, which must happen before the HelloWired instance can be created, since it requires the DOM Node as a constructor parameter.  And finally, the sayHello initializer method can only be invoked after the HelloWired instance has been created.
+
+This concept of *automatic ordering* is a key feature of wire.js.  You simply write a declarative wiring spec, that is, you describe *what* you want, and wire.js makes it happen, without your having to worry about the order. 
+
+Hello Wire is a trivial example, and the code to do this ordering yourself would be trivial, but as you deal with larger and larger systems with more and more collaborating components, it can be a big advantage to let wire.js take care of these kinds of ordering issues.
