@@ -1,19 +1,18 @@
 /**
- * @license Copyright (c) 2010 Brian Cavalier
+ * @license Copyright (c) 2011 Brian Cavalier
  * LICENSE: see the LICENSE.txt file. If file is missing, this file is subject
  * to the MIT License at: http://www.opensource.org/licenses/mit-license.php.
  */
 
 /*
 	File: base.js
-	Base wire plugin that provides a reference resolver to resolve objects by name,
-	and a setter plugin that sets basic Javascript properties, e.g. object.prop = value.
+	Base wire plugin that provides properties, init, and destroy facets, and a
+	proxy for plain JS objects.
 */
 define([], function() {
-	var tos, destroyFuncs, undef;
+	var tos, undef;
 
 	tos = Object.prototype.toString;
-	destroyFuncs = [];
 
 	function isArray(it) {
 		return tos.call(it) == '[object Array]';
@@ -50,10 +49,10 @@ define([], function() {
 			invoke(promise, options, target, [], wire);
 
 		} else {
-			var promises, p;
+			var promises, p, func;
 			promises = [];
 
-			for(var func in options) {
+			for(func in options) {
 				p = wire.deferred();
 				promises.push(p);
 				invoke(p, func, target, options[func], wire);
@@ -69,25 +68,14 @@ define([], function() {
 		promise.resolve(spec.wire$literal);
 	}
 
-	function propertiesAspect(promise, facet, wire) {
-		var options, promises, p, val;
+	function propertiesFacet(promise, facet, wire) {
+		var options, promises, p, prop;
 
 		promises = [];
 		options = facet.options;
 
-		for(var prop in options) {
-
-			p = wire.deferred();
-			promises.push(p);
-
-			(function(p, name, val) {
-				
-				wire(val).then(function(resolvedValue) {
-					facet.set(name, resolvedValue);
-					p.resolve();
-				});
-
-			})(p, prop, options[prop]);
+		for(prop in options) {
+			promises.push(setProperty(facet, prop, options[prop], wire));
 		}
 
 		wire.whenAll(promises).then(function() {
@@ -95,40 +83,58 @@ define([], function() {
 		});
 	}
 
-	function initAspect(promise, facet, wire) {
+	function setProperty(proxy, name, val, wire) {
+		return wire(val).then(function(resolvedValue) {
+			proxy.set(name, resolvedValue);
+		});		
+	}
+
+	function initFacet(promise, facet, wire) {
 		invokeAll(promise, facet, wire);
 	}
 
-	function destroyAspect(promise, facet, wire) {
-		promise.resolve();
-		
-		var target, options, w;
-		
-		target = facet.target;
-		options = facet.options;
-		w = wire;
-
-		destroyFuncs.push(function destroyObject() {
-			invokeAll(wire.deferred(), { options: options, target: target }, w);
-		});
+	function pojoProxy(object, spec) {
+		return {
+			get: function(property) {
+				return object[property];
+			},
+			set: function(property, value) {
+				object[property] = value;
+				return value;
+			},
+			invoke: function(method, args) {
+				return method.apply(object, args);
+			}
+		};
 	}
 
 	return {
 		wire$plugin: function(ready, destroyed, options) {
-			destroyed.then(null, null, function() {
-				for (var i=0; i < destroyFuncs.length; i++) {
-					destroyFuncs[i]();
-				};
+			var destroyFuncs = [];
+
+			destroyed.then(function() {
+				var destroy;
+
+				while((destroy = destroyFuncs.shift())) {
+					destroy();
+				}
 			});
+
+			function destroyFacet(promise, facet, wire) {
+				promise.resolve();
+				
+				var target, options, w;
+				
+				target = facet.target;
+				options = facet.options;
+				w = wire;
+
+				destroyFuncs.push(function destroyObject() {
+					invokeAll(wire.deferred(), { options: options, target: target }, w);
+				});
+			}
 			
 			return {
-				resolvers: {
-					wire: function(promise, name, refObj, wire) {
-						wire.ready.then(function(context) {
-							promise.resolve(context);
-						});
-					}
-				},
 				factories: {
 					wire$literal: literalFactory
 				},
@@ -136,40 +142,21 @@ define([], function() {
 					// properties facet.  Sets properties on components
 					// after creation.
 					properties: {
-						configure: propertiesAspect
+						configure: propertiesFacet
 					},
 					// init facet.  Invokes methods on components after
 					// they have been configured
 					init: {
-						initialize: initAspect
+						initialize: initFacet
 					},
 					// destroy facet.  Registers methods to be invoked
 					// on components when the enclosing context is destroyed
 					destroy: {
-						ready: destroyAspect
+						ready: destroyFacet
 					}
 				},
-				setters: [
-					/*
-						Function: set
-						Basic setter that sets simple Javascript properties.  This is the
-						fallback setter that is used if no other setters can handle setting
-						properties for a particular object.
-						
-						Parameters:
-							object - Object on which to set property
-							property - String name of property to set on object
-							value - value to which to set property
-							
-						Returns:
-						Always returns true.  In general, though, setters should return true if they
-						have successfully set the property, or false (strict false, not falsey)
-						if they cannot set the property on the object.
-					*/
-					function set(object, property, value) {
-						object[property] = value;
-						return true;
-					}
+				proxies: [
+					pojoProxy
 				]
 			};				
 		}

@@ -65,15 +65,20 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 	
     function wireContext(spec, parent) {
 
-    	var promise = Deferred();
+    	var deferred = Deferred();
 
     	// Function to do the actual wiring.  Capture the
     	// parent so it can be called after an async load
     	// if spec is an AMD module Id string.
     	function doWireContext(spec) {
-			createScope(spec, parent).then(function(scope) {
-				promise.resolve(scope.objects);
-			});
+			createScope(spec, parent).then(
+				function(scope) {
+					deferred.resolve(scope.objects);
+				},
+				function(err) {
+					deferred.reject(err);
+				}
+			);
     	}
 
     	// If spec is a module Id, load it, then wire it.
@@ -84,11 +89,11 @@ define(['require', 'wire/base'], function(require, basePlugin) {
     		doWireContext(spec);
     	}
 
-		return promise;
+		return deferred;
 	}
 
 	function createScope(scopeDef, parent) {
-		var scope, local, objects, resolvers, factories, facets, setters,
+		var scope, local, objects, resolvers, factories, facets, proxies,
 			modulesToLoad, moduleLoadPromises,
 			contextApi, modulesReady, scopeReady, scopeDestroyed,
 			promises, name;
@@ -106,8 +111,8 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		factories = delegate(parent.factories||{});
 		facets    = delegate(parent.facets||{});
 
-		// Setters is an array, have to concat
-		setters = parent.setters ? [].concat(parent.setters) : [];
+		// Proxies is an array, have to concat
+		proxies = parent.proxies ? [].concat(parent.proxies) : [];
 
 		modulesToLoad = [];
 		moduleLoadPromises = {};
@@ -124,7 +129,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			resolvers:  resolvers,
 			factories:  factories,
 			facets:     facets,
-			setters:    setters,
+			proxies: 	proxies,
 			resolveRef: doResolveRef,
 			destroy:    destroy,
 			destroyed:  scopeDestroyed
@@ -155,9 +160,9 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		promises = [];
 
 		// Setup a promise for each item in this scope
+		var p;
 		for(name in scopeDef) {
-			var p = objects[name] = Deferred();
-			promises.push(p);
+			promises.push(p = objects[name] = Deferred());
 		}
 
 		// Context API
@@ -208,10 +213,18 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		//
 
 		function createScopeItem(name, val, itemPromise) {
-			createItem(val, name).then(function(resolved) {
+			// NOTE: Order is important here.
+			// The object & local property assignment MUST happen before
+			// the chain resolves so that the concrete item is in place.
+			// Otherwise, the whole scope can be marked as resolved before
+			// the final item has been resolved.
+			var p = createItem(val, name);
+
+			p.then(function(resolved) {
 				objects[name] = local[name] = resolved;
-				itemPromise.resolve(resolved);
-			});			
+			});
+
+			chain(p, itemPromise);
 		}
 
 		function createItem(val, name) {
@@ -274,8 +287,8 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 					addPlugin(plugin.factories, factories);
 					addPlugin(plugin.facets, facets);
 
-					if(plugin.setters) {
-						setters = plugin.setters.concat(setters);
+					if(plugin.proxies) {
+						proxies = plugin.proxies.concat(proxies);
 					}					
 				}
 			}
@@ -307,18 +320,19 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 					var itemPromise = result[i] = createItem(arrayDef[i]);
 					promises.push(itemPromise);
 
-					(function(i) {
-						// Capture i, assign resolved array item into array
-						itemPromise.then(function(realItem) {
-							result[i] = realItem;
-						});
-					})(i);
+					resolveArrayValue(itemPromise, result, i);
 				}
 				
 				chain(whenAll(promises), promise, result);
 			}
 
 			return promise;
+		}
+
+		function resolveArrayValue(promise, array, i) {
+			promise.then(function(value) {
+				array[i] = value;
+			});
 		}
 
 		function createModule(spec) {
@@ -332,7 +346,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 				promise = Deferred();
 
 				findFactory(spec).then(function(factory) {
-					factory(promise, spec, pluginApi);
+					factory(promise.resolver, spec, pluginApi);
 				});
 			}
 
@@ -373,8 +387,6 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			
 			promise = Deferred();
 
-			proxy = {};
-
 			update = { spec: spec };
 			created     = target;
 			configured  = Deferred();
@@ -389,8 +401,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			// After the object has been created, update progress for
 			// the entire scope, then process the post-created facets
 			when(target).then(function(object) {
-				
-				initProxy(proxy, object);
+				var proxy = createProxy(object, spec);
 
 				chain(scopeDestroyed, destroyed, object);
 
@@ -419,50 +430,38 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			return promise;
 		}
 
-		function initProxy(proxy, object) {
-			var cachedSetter;
+		function createProxy(object, spec) {
+			var proxy, i;
 
-			function setProp(prop, value) {
-				if(!(cachedSetter && cachedSetter(object, prop, value))) {
-					var success = false,
-						s = 0;
-
-					// Try all the registered setters until we find one that reports success
-					while(!success && s<setters.length) {
-						var setter = setters[s++];
-						success = setter(object, prop, value);
-						if(success) {
-							cachedSetter = setter;
-						}
-					}
-				}
-			}
+			i = 0;
+			while(!(proxy = proxies[i++](object, spec))) {}
 
 			proxy.target = object;
-			proxy.set    = setProp;
-			// TODO: Add get() and invoke() to provide a generic interface to
-			// getting a prop value and invoke a method?
+
+			return proxy;
 		}
 
 		function processFacets(step, proxy, spec) {
-			var promises, facet, facetProcessor, options;
+			var promises, facet, facetProcessor, options, name;
 
 			promises = [];
 			facet = delegate(proxy);
 
-			for(var a in facets) {
-				facetProcessor = facets[a];
-				options = facet.options = spec[a];
-
-				if(options && facetProcessor && facetProcessor[step]) {
-					var facetPromise = Deferred();
-					promises.push(facetPromise);
-					facetProcessor[step](facetPromise, facet, pluginApi);
-				}
+			for(name in facets) {
+				options = facet.options = spec[name];
+				processFacet(facets[name], step, facet, promises);
 			}
 
 			return chain(whenAll(promises), Deferred(), proxy.target);
 
+		}
+
+		function processFacet(processor, step, facet, promises) {
+			if(facet.options && processor && processor[step]) {
+				var facetPromise = Deferred();
+				promises.push(facetPromise);
+				processor[step](facetPromise.resolver, facet, pluginApi);
+			}
 		}
 
 		//
@@ -721,7 +720,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		TODO: Figure out the best strategy for rejecting.
 	*/
 	function whenAll(promises) {
-		var toResolve, values, promise;
+		var toResolve, values, deferred;
 
 		toResolve = promises.length;
 		
@@ -734,7 +733,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			values.push(val);
 			if(--toResolve === 0) {
 				resolver = progress = noop;
-				promise.resolve(values);
+				deferred.resolve(values);
 			}
 		}
 
@@ -751,7 +750,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		// var rejecter = function handleReject(err) {
 		function rejecter(err) {
 			rejecter = progress = noop;
-			promise.reject(err);			
+			deferred.reject(err);			
 		}
 
 		// Wrapper so that rejecer can be replaced
@@ -763,14 +762,14 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		// can't overwrite it until resolve/reject.  So, it is
 		// overwritten in resolve(), and reject().
 		function progress(update) {
-			promise.progress(update);
+			deferred.progress(update);
 		}
 
-		promise = Deferred();
+		deferred = Deferred();
 		values = [];
 
 		if(toResolve == 0) {
-			promise.resolve(values);
+			deferred.resolve(values);
 
 		} else {
 			for (var i = 0; i < promises.length; i++) {
@@ -779,7 +778,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 
 		}
 		
-		return promise;
+		return deferred;
 	}
 
 	function when(promiseOrValue) {
@@ -787,9 +786,9 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			return promiseOrValue;
 		}
 
-		var p = Deferred();
-		p.resolve(promiseOrValue);
-		return p;
+		var d = Deferred();
+		d.resolve(promiseOrValue);
+		return d;
 	}
 
 	function isPromise(promiseOrValue) {
@@ -947,9 +946,11 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 
 						}
 					} catch(e) {
-						// Exceptions cause chained deferreds to complete
-						// TODO: Should this always reject()?
-						ldeferred[which](result);
+						// Exceptions cause chained deferreds to reject
+						// TODO: Should this also switch remaining listeners to reject?
+						// console.error(e);
+						// which = 'reject';
+						ldeferred.reject(e);
 					}
 				}
 			}			
