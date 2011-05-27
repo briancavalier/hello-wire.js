@@ -13,13 +13,16 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 
 	"use strict";
 
-	var VERSION = "0.5",
-        tos = Object.prototype.toString,
-        rootContext,
-        rootSpec = global['wire']||{};
+	var VERSION, tos, rootContext, rootSpec, delegate;
+	
+	VERSION = "0.5";
+    tos = Object.prototype.toString;
+    rootSpec = global['wire']||{};
+
+	delegate = Object.create || createObject;
 
     //
-    // Public API
+    // AMD Module API
     //
 
     function wire(spec) {
@@ -75,9 +78,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 				function(scope) {
 					deferred.resolve(scope.objects);
 				},
-				function(err) {
-					deferred.reject(err);
-				}
+				chainReject(deferred)
 			);
     	}
 
@@ -106,10 +107,10 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 
 		// Descend scope and plugins from parent so that this scope can
 		// use them directly via the prototype chain
-		objects   = delegate(parent.objects||{});
+		objects   = delegate(parent.objects  ||{});
 		resolvers = delegate(parent.resolvers||{});
 		factories = delegate(parent.factories||{});
-		facets    = delegate(parent.facets||{});
+		facets    = delegate(parent.facets   ||{});
 
 		// Proxies is an array, have to concat
 		proxies = parent.proxies ? [].concat(parent.proxies) : [];
@@ -231,12 +232,15 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			var created;
 			
 			if(isRef(val)) {
+				// Reference
 				created = resolveRef(val, name);
 
 			} else if(isArray(val)) {
+				// Array
 				created = createArray(val);
 
 			} else if(isStrictlyObject(val)) {
+				// Module or nested scope
 				created = createModule(val);
 
 			} else {
@@ -336,21 +340,25 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		}
 
 		function createModule(spec) {
-			var promise;
+			var promise = Deferred();
 
-			if(spec.module) {
-				// It's just a module, load it
-				promise = loadModule(spec.module, spec);
-			} else {
-				// Look for a factory, then use it to create the object
-				promise = Deferred();
+			// Look for a factory, then use it to create the object
+			findFactory(spec).then(
+				function(factory) {
+					var factoryPromise = Deferred();
+					factory(factoryPromise.resolver, spec, pluginApi);
+					chain(processObject(factoryPromise, spec), promise);
+				},
+				function() {
+					// No factory found, treat object spec as a nested scope
+					createScope(spec, scope).then(
+						function(created) { promise.resolve(created.local); },
+						chainReject(promise)
+					);
+				}
+			);
 
-				findFactory(spec).then(function(factory) {
-					factory(promise.resolver, spec, pluginApi);
-				});
-			}
-
-			return processObject(promise, spec);
+			return promise;
 		}
 
 		function findFactory(spec) {
@@ -363,8 +371,10 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			// Maybe need a special syntax for factories, something like:
 			// create: "factory!whatever-arg-the-factory-takes"
 			// args: [factory args here]
-			if(spec.create) {
+			if(spec.module) {
 				promise.resolve(moduleFactory);
+			} else if(spec.create) {
+				promise.resolve(instanceFactory);
 			} else {
 				modulesReady.then(function() {
 					for(var f in factories) {
@@ -374,7 +384,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 						}
 					}
 					
-					promise.resolve(scopeFactory);		
+					promise.reject();		
 				});				
 			}
 
@@ -383,7 +393,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 
 
 		function processObject(target, spec) {
-			var promise, proxy, update, created, configured, initialized, destroyed;
+			var promise, update, created, configured, initialized, destroyed, fail;
 			
 			promise = Deferred();
 
@@ -398,42 +408,40 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			update.initialized = initialized.promise;
 			update.destroyed   = destroyed.promise;
 
+			fail = chainReject(promise);
+
 			// After the object has been created, update progress for
 			// the entire scope, then process the post-created facets
-			when(target).then(function(object) {
-				var proxy = createProxy(object, spec);
+			when(target).then(
+				function(object) {
+					chain(scopeDestroyed, destroyed, object);
 
-				chain(scopeDestroyed, destroyed, object);
+					// Notify progress about this object.
+					update.target = object;
+					scopeReady.progress(update);
 
-				update.target = object;
-
-				// Notify progress about this object.
-				scopeReady.progress(update);
-
-				// After the object is configured, process the post-configured
-				// facets.
-				configured.then(function(object) {
-					chain(processFacets('initialize', proxy, spec), initialized);
-				});
-
-				// After the object is initialized, process the post-initialized
-				// facets.
-				initialized.then(function(object) {
-					chain(processFacets('ready', proxy, spec), promise);
-				});				
-
-				chain(processFacets('configure', proxy, spec), configured);
-
-			});
-
+					var proxy = createProxy(object, spec);
+					chain(processFacets('configure', proxy, spec), configured).then(
+						function(object) {
+							return chain(processFacets('initialize', proxy, spec), initialized);
+						},
+						fail
+					).then(
+						function(object) {
+							return chain(processFacets('ready', proxy, spec), promise);
+						},
+						fail
+					);
+				},
+				fail
+			);
 
 			return promise;
 		}
 
 		function createProxy(object, spec) {
-			var proxy, i;
+			var proxy, i = 0;
 
-			i = 0;
 			while(!(proxy = proxies[i++](object, spec))) {}
 
 			proxy.target = object;
@@ -442,7 +450,7 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		}
 
 		function processFacets(step, proxy, spec) {
-			var promises, facet, facetProcessor, options, name;
+			var promises, facet, options, name;
 
 			promises = [];
 			facet = delegate(proxy);
@@ -468,52 +476,55 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		// Built-in Factories
 		//
 
-		/*
-			Function: scopeFactory
-			Factory to create a new nested scope
-		*/
-		function scopeFactory(promise, spec, wire) {
-			return createScope(spec, scope).then(function(created) {
-				promise.resolve(created.local);
-			});
+		function moduleFactory(promise, spec, wire) {
+			chain(loadModule(spec.module, spec), promise);
 		}
 
 		/*
-			Function: moduleFactory
+			Function: instanceFactory
 			Factory that uses an AMD module either directly, or as a
 			constructor or plain function to create the resulting item.
 		*/
-		function moduleFactory(promise, spec, wire) {
-			var moduleId;
-			
-			moduleId = spec.create.module||spec.create;
+		function instanceFactory(promise, spec, wire) {
+			var fail = chainReject(promise);
 
 			// Load the module, and use it to create the object
-			loadModule(moduleId, spec).then(function(module) {
-				var args;
-				// We'll either use the module directly, or we need
-				// to instantiate/invoke it.
-				if(spec.create && isFunction(module)) {
-					// Instantiate or invoke it and use the result
-					if(typeof spec.create == 'object' && spec.create.args) {
-						args = isArray(spec.create.args) ? spec.create.args : [spec.create.args];
-					} else {
-						args = [];
+			loadModule(spec.create.module||spec.create, spec).then(
+				function(module) {
+					var create, createArgs;
+					
+					function resolve(resolvedArgs) {
+						promise.resolve(instantiate(module, resolvedArgs));
 					}
 
-					createArray(args).then(function(resolvedArgs) {
-
-						var object = instantiate(module, resolvedArgs);
-						promise.resolve(object);
-
-					});
-
-				} else {
-					// Simply use the module as is
-					promise.resolve(module);
+					create = spec.create;
+					createArgs = [];
 					
-				}
-			});
+					// We'll either use the module directly, or we need
+					// to instantiate/invoke it.
+					if(create && isFunction(module)) {
+						// Instantiate or invoke it and use the result
+						if(typeof create == 'object' && create.args) {
+							createArgs = create.args;
+							createArgs = isArray(createArgs) ? createArgs : [createArgs];
+
+							createArray(createArgs).then(resolve, fail);
+
+						} else {
+							// No args, don't need to process them, so can directly
+							// insantiate the module and resolve
+							resolve(createArgs);
+
+						}
+
+					} else {
+						// Simply use the module as is
+						promise.resolve(module);
+						
+					}
+				},
+				fail
+			);
 		}
 
 		//
@@ -595,14 +606,14 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 			for(p in objects) delete objects[p];
 			for(p in scope)   delete scope[p];
 			
-			// But retain a do-nothing destroy() func, in case
+			// Retain a do-nothing destroy() func, in case
 			// it is called again for some reason.
 			doDestroy = noop;
 
 			// Resolve promise
 			scopeDestroyed.resolve();
 		}
-    }
+    } // createScope
 
 	function isRef(it) {
 		return it && it.$ref;
@@ -610,13 +621,6 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 
 	function isScope(it) {
 		return typeof it === 'object';
-	}
-
-	function T() {};
-
-	function delegate(prototype) {
-		T.prototype = prototype;
-		return new T();
 	}
 
 	/*
@@ -649,6 +653,14 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 	*/
 	function isFunction(it) {
 		return typeof it == 'function';
+	}
+
+	// In case Object.create isn't available
+	function T() {};
+
+	function createObject(prototype) {
+		T.prototype = prototype;
+		return new T();
 	}
 	
 	/*
@@ -819,6 +831,10 @@ define(['require', 'wire/base'], function(require, basePlugin) {
 		);
 
 		return second;
+	}
+
+	function chainReject(resolver) {
+		return function(err) { promise.reject(err); };
 	}
 
 	//
