@@ -1,0 +1,6 @@
+[submodule "js/wire"]
+	path = js/wire
+	url = git://github.com/briancavalier/wire.git
+[submodule "js/curl"]
+	path = js/curl
+	url = git://github.com/unscriptable/curl.git
