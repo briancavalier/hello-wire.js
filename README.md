@@ -111,7 +111,7 @@ When you load this page in a browser, you'll see the text "Hello! I haz been wir
 
 ## The Page
 
-So, what happened when we loaded the page?  Let's start with two interesting parts of the page.  First, there is a script tag to load curl.js, an AMD loader--wire.js uses the loader to load AMD style modules.
+So, what happened when we loaded the page?  Let's start with two interesting parts of the page.  First, there is a script tag to load [curl.js](https://github.com/unscriptable/curl/), an AMD loader--wire.js uses the loader to load AMD style modules.
 
 ```html
 <!-- AMD Loader, in this case curl.js -->
