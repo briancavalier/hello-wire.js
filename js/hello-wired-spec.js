@@ -31,9 +31,12 @@ define({
 		}
 	},
 	
-	// Load the basic wire.js dom plugin, which provides the `dom!`
-	// resolver used above.
 	plugins: [
+		// The debug plugin outputs wiring progress and diagnostic info
+		// to the console
+		{ module: 'wire/debug' },
+		// Load the basic wire.js dom plugin, which provides the `dom!`
+		// resolver used above.
 		{ module: 'wire/dom' }
 	]
 });

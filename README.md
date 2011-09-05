@@ -6,73 +6,104 @@ This is a simple Hello World example for [wire.js](https://github.com/briancaval
 
 Here's a very simple wire.js take on Hello World.  Wire.js can use AMD modules, so first, let's use AMD to define a very simple wiring spec.  Wiring specs are simply JSON or Javascript objects.
 
-	define(['hello-wired-spec'], { message: "Hello wire()d!" });
-	
+```javascript
+define(['hello-wired-spec'], { message: "Hello wire()d!" });
+```
+
 In this case our wiring spec is a laughably simple object with a single String property.  Next, let's wire() the spec using wire.js as an AMD plugin. 
-	
-	require(['wire!hello-wired-spec'], function(wired) {
-		alert(wired.message);
-	});
-	
+
+```javascript	
+require(['wire!hello-wired-spec'], function(wired) {
+	alert(wired.message);
+});
+```
+
 As you probably guessed, this will alert with the message "Hello wire()d!".  Yes, that was silly, so let's create a more interesting Hello wire()d.
 
 # Simple, but Less Ridiculous Hello wire()d!
 
 You can run this example by cloning the repo and loading `index.html` in your browser.  First, we'll define a component using AMD:
 
-	define([], function() {
-		function HelloWired(node) {
-			this._node = node;
+```javascript
+define([], function() {
+	function HelloWired(node) {
+		this._node = node;
+	}
+
+	HelloWired.prototype = {
+		sayHello: function(message) {
+			this._node.innerHTML = "Hello! " + message;
 		}
-	
-		HelloWired.prototype = {
-			sayHello: function(message) {
-				this._node.innerHTML = "Hello! " + message;
-			}
-		};
-	
-		return HelloWired;
-	});
-	
+	};
+
+	return HelloWired;
+});
+```
+
 This is a simple module that returns a Javascript constructor for our HelloWorld object.  Now, let's create a wiring spec for our tiny Hello wire()d app:
 
-	define({
-		message: "I haz been wired",
-		helloWired: {
-			create: {
-				module: 'hello-wired',
-				args: { $ref: 'dom!hello' }
-			},
-			init: {
-				sayHello: { $ref: 'message' }
-			}
+```javascript
+define({
+	// A regular String.  Basic Javascript types are supported directly
+	// in wiring specs, even non-primitives like Date and RegExp.
+	message: "I haz been wired",
+
+	// Create an instance of the hello-wired module.
+	helloWired: {
+
+		// The hello-world module returns a constructor function, which
+		// wire.js will call to create the instance, passing a single
+		// parameter, the DOM Node whose id is "hello".  This uses
+		// JSON Reference syntax along with the `dom!` resolver provided
+		// by the `wire/dom` plugin below.
+		create: {
+			module: 'hello-wired',
+			args: { $ref: 'dom!hello' }
 		},
-		plugins: [
-			{ module: 'wire/dom' }
-		]
-	});
-	
+
+		// Invoke the sayHello method on the instance after it is
+		// created, and pass a single parameter, the message String
+		// defined above.  Again, you can use JSON Reference syntax to
+		// reference other objects in the wiring spec.
+		init: {
+			sayHello: { $ref: 'message' }
+		}
+	},
+
+	plugins: [
+		// The debug plugin outputs wiring progress and diagnostic info
+		// to the console
+		{ module: 'wire/debug' },
+		// Load the basic wire.js dom plugin, which provides the `dom!`
+		// resolver used above.
+		{ module: 'wire/dom' }
+	]
+});
+```
+
 And finally, let's create a page for our little app
 
-	<!DOCTYPE HTML>
-	<html>
-	<head>
-		<title>Hello wire()d!</title>	
-		<!-- AMD Loader, in this case curl.js -->
-		<script type="text/javascript" src="curl.js"></script>
-		
-		<!-- Wire the Hello wire()d spec to create the app -->
-		<script type="text/javascript">
-			require(['wire!hello-wired-spec']);
-		</script>
-	</head>
+```html
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Hello wire()d!</title>	
+	<!-- AMD Loader, in this case curl.js -->
+	<script type="text/javascript" src="curl.js"></script>
+	
+	<!-- Wire the Hello wire()d spec to create the app -->
+	<script type="text/javascript">
+		require(['wire!hello-wired-spec']);
+	</script>
+</head>
 
-	<body>
-		<header>
-			<h1 id="hello"></h1>
-		</header>
-	</body>
-	</html>
+<body>
+	<header>
+		<h1 id="hello"></h1>
+	</header>
+</body>
+</html>
+```
 
 When you load this page in a browser, you'll see the text "Hello! I haz been wired" in the `h1`.
 
@@ -82,39 +113,49 @@ When you load this page in a browser, you'll see the text "Hello! I haz been wir
 
 So, what happened when we loaded the page?  Let's start with two interesting parts of the page.  First, there is a script tag to load curl.js, an AMD loader--wire.js uses the loader to load AMD style modules.
 
-	<!-- AMD Loader, in this case curl.js -->
-	<script type="text/javascript" src="curl.js"></script>
+```html
+<!-- AMD Loader, in this case curl.js -->
+<script type="text/javascript" src="js/src/curl/curl.js"></script>
+```
 
 Then, there is a call to the loader.  Wire.js can be used as either an AMD loader plugin or as an AMD module.  In this case, we're using it as an AMD plugin.  In particular, we're using wire.js to load and process the wiring spec defined in the AMD module named `hello-wired-spec`.
 
-	<!-- Wire the Hello wire()d spec to create the app -->
-	<script type="text/javascript">
-		require(['wire!hello-wired-spec']);
-	</script>
+```html
+<!-- Wire the Hello wire()d spec to create the app -->
+<script type="text/javascript">
+	curl(['wire!hello-wired-spec']);
+</script>
+```
 
 ## The Wiring Spec
 
 Now let's walk through the wiring spec to see what happens when wire.js processes it.  First, there is the standard AMD module define wrapper:
 
-	define({
-	...
-	});
-	
+```javascript
+define({
+...
+});
+```
+
 Next we have a String property.  This does what you probably expect.  It creates a String property named `message` whose value is `"I haz been wired"`.
 
-	message: "I haz been wired",
-	
+```javascript
+message: "I haz been wired",
+```
+
 Then we have the `helloWired` property, which is more interesting:
 
-	helloWired: {
-		create: {
-			module: 'hello-wired',
-			args: { $ref: 'dom!hello' }
-		},
-		init: {
-			sayHello: { $ref: 'message' }
-		}
+```javascript
+helloWired: {
+	create: {
+		module: 'hello-wired',
+		args: { $ref: 'dom!hello' }
 	},
+	init: {
+		sayHello: { $ref: 'message' }
+	}
+},
+```
 
 This creates an instance of the `hello-wired` module, invoking it as a constructor, and passing a single argument (we'll see what that argument is below, but you can probably guess).  Then wire.js will invoke the `sayHello` method on the `hello-wired` instance, again passing a single argument.
 
@@ -122,9 +163,12 @@ So, this part of the spec creates an instance of `hello-wired`, and initializes 
 
 Finally, in the wiring spec, we have an Array named `plugins`.  There is nothing special about the name `plugins`--it is not a wire.js keyword (wire.js has very few keywords, and most functionality is provided via pluggable syntax from plugins).
 
-	plugins: [
-		{ module: 'wire/dom' }
-	]
+```javascript
+plugins: [
+	{ module: 'wire/debug' },
+	{ module: 'wire/dom' }
+]
+```
 
 The array has a single element, which is an object.  That object *does* use one of wire.js's keywords, `module`.  In this case, wire.js will load the AMD module `wire/dom`.  So the result is an array named `plugins` with a single element whose value is the result of loading the module `wire/dom`.
 
@@ -134,27 +178,37 @@ That AMD module just happens to be a wire.js plugin.  Plugins can provide severa
 
 You probably guessed that there is some relationship between the `wire/dom` plugin and the `{ $ref: 'dom!hello' }` bit in the `helloWired` object.  Yep, there is.  When instantiating the `helloWired` object, wire.js will pass its constructor a single parameter (it is also possible to pass multiple parameters using an array, but let's keep it simple for now):
 
+```javascript
 	args: { $ref: 'dom!hello' }
+```
 
 That single parameter is a reference to a DOM Node whose `id="hello"`.  This is Dependency Injection at work.  The `hello-wired` instance needs a DOM Node to do it's job, and we have supplied one by referencing it using the `wire/dom` plugin's `dom!` reference resolver.
 
 You can think of this as:
 	
+```javascript
 	new HelloWired(document.getElementById("hello"))
+```
 	
 but you'd also need to add your own DOMReady wrapper/check, which wire.js gives you for free.
 
 Then, when wire.js invokes the `sayHello` method on the instance, it also passes a single parameter:
 
+```javascript
 	sayHello: { $ref: 'message' }
+```
 	
 In this case, the parameter is a reference to the `message` String, which is the first item in the spec.  You can think of this as:
 
+```javascript
 	helloWired.sayHello(message)
+```
 
 Parameters don't have to be references.  For example, we could have just as easily provided a message inline:
 
+```javascript
 	sayHello: "I haz been wired"
+```
 	
 ## Finally, a Note on Order
 

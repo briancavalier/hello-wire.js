@@ -4,22 +4,25 @@
 	<title>Hello wire()d!</title>
 	<script type="text/javascript">
 		// Configure AMD loader paths
-		require = {
+		curl = {
 			baseUrl: 'js',
-			pluginPath: '.',
-			paths: {
-				wire: 'wire'
-			}
+			pluginPath: 'curl/src/curl',
+            packages: [
+                { name: 'curl', path: 'curl/src/curl', main: 'curl' },
+                { name: 'sizzle', path: 'wire/support/sizzle', main: 'sizzle' },
+                { name: 'aop', path: 'wire/support/aop', main: 'aop' },
+                { name: 'wire', path: 'wire', lib: './wire', main: 'wire' }
+            ]
 		};
 	</script>
 	<!-- AMD Loader, in this case curl.js -->
-	<script type="text/javascript" src="js/curl.js"></script>
+	<script type="text/javascript" src="js/curl/src/curl.js"></script>
 	
 	<!-- Wire the Hello wire()d spec to create the app -->
 	<script type="text/javascript">
 		// Use wire as an AMD plugin to load the wiring spec, which
 		// will set the app into motion.
-		require(['wire!hello-wired-spec']);
+		curl(['wire!hello-wired-spec']);
 	</script>
 </head>
 
