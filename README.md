@@ -87,18 +87,35 @@ And finally, let's create a page for our little app
 <!DOCTYPE HTML>
 <html>
 <head>
-	<title>Hello wire()d!</title>	
+	<title>Hello wire()d!</title>
+	<script type="text/javascript">
+		// Configure curl AMD loader paths
+		curl = {
+			baseUrl: 'js',
+			pluginPath: 'curl/src/curl',
+            packages: [
+                { name: 'curl', path: 'curl/src/curl', main: 'curl' },
+                { name: 'sizzle', path: 'wire/support/sizzle', main: 'sizzle' },
+                { name: 'aop', path: 'wire/support/aop', main: 'aop' },
+                { name: 'wire', path: 'wire', lib: './wire', main: 'wire' }
+            ]
+		};
+	</script>
+	
 	<!-- AMD Loader, in this case curl.js -->
-	<script type="text/javascript" src="curl.js"></script>
+	<script type="text/javascript" src="js/curl/src/curl.js"></script>
 	
 	<!-- Wire the Hello wire()d spec to create the app -->
 	<script type="text/javascript">
-		require(['wire!hello-wired-spec']);
+		// Use wire as an AMD plugin to load the wiring spec, which
+		// will set the app into motion.
+		curl(['wire!hello-wired-spec']);
 	</script>
 </head>
 
 <body>
 	<header>
+		<!-- Message will go here -->
 		<h1 id="hello"></h1>
 	</header>
 </body>
@@ -140,17 +157,31 @@ define({
 Next we have a String property.  This does what you probably expect.  It creates a String property named `message` whose value is `"I haz been wired"`.
 
 ```javascript
+// A regular String.  Basic Javascript types are supported directly
+// in wiring specs, even non-primitives like Date and RegExp.
 message: "I haz been wired",
 ```
 
 Then we have the `helloWired` property, which is more interesting:
 
 ```javascript
+// Create an instance of the hello-wired module.
 helloWired: {
+
+	// The hello-world module returns a constructor function, which
+	// wire.js will call to create the instance, passing a single
+	// parameter, the DOM Node whose id is "hello".  This uses
+	// JSON Reference syntax along with the `dom!` resolver provided
+	// by the `wire/dom` plugin below.
 	create: {
 		module: 'hello-wired',
 		args: { $ref: 'dom!hello' }
 	},
+	
+	// Invoke the sayHello method on the instance after it is
+	// created, and pass a single parameter, the message String
+	// defined above.  Again, you can use JSON Reference syntax to
+	// reference other objects in the wiring spec.
 	init: {
 		sayHello: { $ref: 'message' }
 	}
@@ -165,7 +196,11 @@ Finally, in the wiring spec, we have an Array named `plugins`.  There is nothing
 
 ```javascript
 plugins: [
+	// The debug plugin outputs wiring progress and diagnostic info
+	// to the console
 	{ module: 'wire/debug' },
+	// Load the basic wire.js dom plugin, which provides the `dom!`
+	// resolver used above.
 	{ module: 'wire/dom' }
 ]
 ```
