@@ -95,8 +95,6 @@ And finally, let's create a page for our little app
 			pluginPath: 'curl/src/curl',
             packages: [
                 { name: 'curl', path: 'curl/src/curl', main: 'curl' },
-                { name: 'sizzle', path: 'wire/support/sizzle', main: 'sizzle' },
-                { name: 'aop', path: 'wire/support/aop', main: 'aop' },
                 { name: 'wire', path: 'wire', lib: './wire', main: 'wire' }
             ]
 		};
