@@ -7,7 +7,7 @@ This is a simple Hello World example for [wire.js](https://github.com/briancaval
 Here's a very simple wire.js take on Hello World.  Wire.js can use AMD modules, so first, let's use AMD to define a very simple wiring spec.  Wiring specs are simply JSON or Javascript objects.
 
 ```javascript
-define(['hello-wired-spec'], { message: "Hello wire()d!" });
+define('hello-wired-spec', [], { message: "Hello wire()d!" });
 ```
 
 In this case our wiring spec is a laughably simple object with a single String property.  Next, let's wire() the spec using wire.js as an AMD plugin. 
