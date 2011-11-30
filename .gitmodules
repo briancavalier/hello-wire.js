@@ -4,3 +4,6 @@
 [submodule "js/curl"]
 	path = js/curl
 	url = git://github.com/unscriptable/curl.git
+[submodule "js/requirejs"]
+	path = js/requirejs
+	url = https://github.com/jrburke/requirejs.git
