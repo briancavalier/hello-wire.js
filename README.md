@@ -2,6 +2,19 @@
 
 This is a simple Hello World example for [wire.js](https://github.com/briancavalier/wire), a Javascript IOC Container.
 
+## Running the demo
+
+To run the demo:
+
+1. git clone https://github.com/briancavalier/hello-wire.js
+2. cd hello-wire.js
+3. git submodule init && git submodule update
+4. open `index.html` in your browser
+
+By default, the demo will use [curl](https://github.com/unscriptable/curl) as the AMD loader.  You can also run the demo using [RequireJS](https://github.com/jrburke/requirejs.git), by appending `#requirejs` to the url, i.e. in step 4:
+
+4. open `index.html#requirejs` in your browser
+
 # Simple and Ridiculous Example - Hello wire()d!
 
 Here's a very simple wire.js take on Hello World.  Wire.js can use AMD modules, so first, let's use AMD to define a very simple wiring spec.  Wiring specs are simply JSON or Javascript objects.
