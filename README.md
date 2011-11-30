@@ -155,7 +155,8 @@ And finally, let's create a page for our little app
 		<h1 id="hello"></h1>
 	</header>
 </body>
-</html>```
+</html>
+```
 
 When you load this page in a browser, you'll see the text "Hello! I haz been wired" in the `h1`.
 
