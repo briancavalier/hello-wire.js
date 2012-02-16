@@ -19,19 +19,21 @@
     		var config = g.curl = g.require = {
                 apiName: 'require', // curl: this tells curl to register its global name as "require"
     			baseUrl: 'js',
-                paths: {
-                    wire: 'wire/wire'
-                },
+				pluginPath: null,
+				paths: {
+					domReady: 'curl/src/curl/plugin/domReady'
+				},
                 packages: [
-                    { name: 'curl', location: 'curl/src/curl', path: 'curl/src/curl', lib: '.', main: 'curl' },
-                    { name: 'when', location: 'wire/support/when', path: 'wire/support/when', lib: '.', main: 'when' },
-                    { name: 'aop', location: 'wire/support/aop', path: 'wire/support/aop', lib: '.', main: 'aop' }
+                    { name: 'curl', location: 'curl/src/curl', main: 'curl' },
+                    { name: 'wire', location: 'wire', main: 'wire' },
+                    { name: 'when', location: 'wire/support/when', main: 'when' },
+                    { name: 'aop', location: 'wire/support/aop', main: 'aop' }
                 ]
     		};
 
             var loader;
             if(g.location.hash === '#requirejs') {
-                // RequireJS needs a path entry for its own domReady
+                // Overwrite curl's domReady with requirejs' when we're using requirejs
                 config.paths['domReady'] = 'requirejs/domReady';
                 loader = 'js/requirejs/require.js';
             } else {

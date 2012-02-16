@@ -26,15 +26,17 @@ define({
 		// created, and pass a single parameter, the message String
 		// defined above.  Again, you can use JSON Reference syntax to
 		// reference other objects in the wiring spec.
-		init: {
+		ready: {
 			sayHello: { $ref: 'message' }
 		}
 	},
 	
 	plugins: [
 		// The debug plugin outputs wiring progress and diagnostic info
-		// to the console
-		{ module: 'wire/debug' },
+		// to the console. Turning on trace will trace method calls on
+		// components in this spec.  In the console, You'll see the call
+		// to helloWired.sayHello, as well as when it returns.
+		{ module: 'wire/debug', trace: true },
 		// Load the basic wire.js dom plugin, which provides the `dom!`
 		// resolver used above.
 		{ module: 'wire/dom' }
