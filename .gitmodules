@@ -7,3 +7,9 @@
 [submodule "js/requirejs"]
 	path = js/requirejs
 	url = https://github.com/jrburke/requirejs.git
+[submodule "js/when"]
+	path = js/when
+	url = https://github.com/cujojs/when
+[submodule "js/aop"]
+	path = js/aop
+	url = https://github.com/cujojs/aop
