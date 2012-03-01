@@ -25,7 +25,10 @@
 				},
                 packages: [
                     { name: 'curl', location: 'curl/src/curl', main: 'curl' },
-                    { name: 'wire', location: 'wire', main: 'wire' },
+					// Use this for wire >= 0.8.0 plus curl >= 0.6
+//					{ name: 'wire', location: 'wire', main: 'wire' },
+					// Use this for wire < 0.8.0 plus curl >= 0.6
+					{ name: 'wire', location: 'wire/wire', main: '..' },
                     { name: 'when', location: 'when', main: 'when' },
                     { name: 'aop', location: 'aop', main: 'aop' }
                 ]
