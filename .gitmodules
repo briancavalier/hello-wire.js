@@ -1,12 +1,12 @@
 [submodule "js/wire"]
 	path = js/wire
-	url = git://github.com/cujojs/wire.git
+	url = https://github.com/cujojs/wire
 [submodule "js/curl"]
 	path = js/curl
-	url = git://github.com/cujojs/curl.git
+	url = https://github.com/cujojs/curl
 [submodule "js/requirejs"]
 	path = js/requirejs
-	url = https://github.com/jrburke/requirejs.git
+	url = https://github.com/jrburke/requirejs
 [submodule "js/when"]
 	path = js/when
 	url = https://github.com/cujojs/when
