@@ -8,7 +8,7 @@ define({
 	// A regular String.  Basic Javascript types are supported directly
 	// in wiring specs, even non-primitives like Date and RegExp.
 	message: "I haz been wired",
-	
+
 	// Create an instance of the hello-wired module.
 	helloWired: {
 
@@ -18,10 +18,10 @@ define({
 		// JSON Reference syntax along with the `dom!` resolver provided
 		// by the `wire/dom` plugin below.
 		create: {
-			module: 'hello-wired',
+			module: 'app/hello-wired',
 			args: { $ref: 'dom!hello' }
 		},
-		
+
 		// Invoke the sayHello method on the instance after it is
 		// created, and pass a single parameter, the message String
 		// defined above.  Again, you can use JSON Reference syntax to
@@ -30,7 +30,7 @@ define({
 			sayHello: { $ref: 'message' }
 		}
 	},
-	
+
 	plugins: [
 		// The debug plugin outputs wiring progress and diagnostic info
 		// to the console. Turning on trace will trace method calls on

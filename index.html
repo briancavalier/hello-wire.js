@@ -17,39 +17,37 @@
 
     		// Configure AMD loader paths
     		var config = g.curl = g.require = {
-                apiName: 'require', // curl: this tells curl to register its global name as "require"
-    			baseUrl: 'js',
-				pluginPath: null,
-				paths: {
-					domReady: 'curl/src/curl/plugin/domReady'
-				},
+                // apiName: 'require', // curl: this tells curl to register its global name as "require"
+    			baseUrl: '',
                 packages: [
-                    { name: 'curl', location: 'curl/src/curl', main: 'curl' },
-                    { name: 'wire', location: 'wire', main: 'wire' },
-                    { name: 'when', location: 'when', main: 'when' },
-                    { name: 'aop', location: 'aop', main: 'aop' }
+                    { name: 'curl', location: 'lib/curl/src/curl', main: 'curl' },
+                    { name: 'wire', location: 'lib/wire', main: 'wire' },
+                    { name: 'when', location: 'lib/when', main: 'when' },
+                    { name: 'meld', location: 'lib/meld', main: 'meld' },
+                    { name: 'poly', location: 'lib/poly', main: 'poly' }
                 ]
     		};
 
-            var loader;
-            if(g.location.hash === '#requirejs') {
-                // Overwrite curl's domReady with requirejs' when we're using requirejs
-                config.paths['domReady'] = 'requirejs/domReady';
-                loader = 'js/requirejs/require.js';
-            } else {
-                loader = 'js/curl/src/curl.js';
-            }
+            // var loader;
+            // if(g.location.hash === '#requirejs') {
+            //     // Overwrite curl's domReady with requirejs' when we're using requirejs
+            //     config.paths['domReady'] = 'requirejs/domReady';
+            //     loader = 'lib/requirejs/require.js';
+            // } else {
+            //     loader = 'lib/curl/src/curl.js';
+            // }
 
-            document.write('<script type="text/javascript" src="' + loader + '"></sc' + 'ript>');
+            // document.write('<script type="text/javascript" src="' + loader + '"></sc' + 'ript>');
 
         })(window);
 	</script>
 
+    <script src="lib/curl/src/curl.js"></script>
 	<!-- Wire the Hello wire()d spec to create the app -->
 	<script type="text/javascript">
 		// Use wire as an AMD plugin to load the wiring spec, which
 		// will set the app into motion.
-		require(['wire!hello-wired-spec']);
+		curl(['wire!app/hello-wired-spec']);
 	</script>
 </head>
 
