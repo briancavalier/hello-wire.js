@@ -2,53 +2,9 @@
 <html>
 <head>
 	<title>Hello wire()d!</title>
-	<script type="text/javascript">
-        (function(g) {
-            // This demo works with either curl or requirejs AMD loader.
-            //
-            // To use with curl:
-            // 1. Load the page :)
-            //
-            // To use with requirejs
-            // 1. Load the page with '#requirejs' appended to the url
-            // e.g. path/to/hello-wired/#requirejs
-            // Remember that some browsers will not automatically reload the page
-            // if you just append a new hash, so you may have to click reload manually.
-
-    		// Configure AMD loader paths
-    		var config = g.curl = g.require = {
-                // apiName: 'require', // curl: this tells curl to register its global name as "require"
-    			baseUrl: '',
-                packages: [
-                    { name: 'curl', location: 'lib/curl/src/curl', main: 'curl' },
-                    { name: 'wire', location: 'lib/wire', main: 'wire' },
-                    { name: 'when', location: 'lib/when', main: 'when' },
-                    { name: 'meld', location: 'lib/meld', main: 'meld' },
-                    { name: 'poly', location: 'lib/poly', main: 'poly' }
-                ]
-    		};
-
-            // var loader;
-            // if(g.location.hash === '#requirejs') {
-            //     // Overwrite curl's domReady with requirejs' when we're using requirejs
-            //     config.paths['domReady'] = 'requirejs/domReady';
-            //     loader = 'lib/requirejs/require.js';
-            // } else {
-            //     loader = 'lib/curl/src/curl.js';
-            // }
-
-            // document.write('<script type="text/javascript" src="' + loader + '"></sc' + 'ript>');
-
-        })(window);
-	</script>
 
     <script src="lib/curl/src/curl.js"></script>
-	<!-- Wire the Hello wire()d spec to create the app -->
-	<script type="text/javascript">
-		// Use wire as an AMD plugin to load the wiring spec, which
-		// will set the app into motion.
-		curl(['wire!app/hello-wired-spec']);
-	</script>
+	<script src="app/run.js"></script>
 </head>
 
 <body>
