@@ -19,7 +19,7 @@ define({
 		// by the `wire/dom` plugin below.
 		create: {
 			module: 'app/hello-wired',
-			args: { $ref: 'dom!hello' }
+			args: { $ref: 'dom.first!.hello' }
 		},
 
 		// Invoke the sayHello method on the instance after it is

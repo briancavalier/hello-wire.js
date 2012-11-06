@@ -1,6 +1,6 @@
 # Hello wire.js
 
-This is a simple Hello World example for [wire.js](https://github.com/briancavalier/wire), a Javascript IOC Container.
+This is a simple Hello World example for [wire.js](https://github.com/cujojs/wire), a Javascript IOC Container.
 
 ## Running the demo
 
@@ -8,12 +8,7 @@ To run the demo:
 
 1. git clone https://github.com/briancavalier/hello-wire.js
 1. cd hello-wire.js
-1. git submodule init && git submodule update
 1. open `index.html` in your browser
-
-By default, the demo will use [curl](https://github.com/unscriptable/curl) as the AMD loader.  You can also run the demo using [RequireJS](https://github.com/jrburke/requirejs.git), by appending `#requirejs` to the url, i.e. in step 4:
-
-4. open `index.html#requirejs` in your browser
 
 # Simple and Ridiculous Example - Hello wire()d!
 
@@ -66,12 +61,12 @@ define({
 
 		// The hello-world module returns a constructor function, which
 		// wire.js will call to create the instance, passing a single
-		// parameter, the DOM Node whose id is "hello".  This uses
-		// JSON Reference syntax along with the `dom!` resolver provided
+		// parameter, the first DOM Node with the CSS class "hello".  This uses
+		// JSON Reference syntax along with the `dom.first!` resolver provided
 		// by the `wire/dom` plugin below.
 		create: {
-			module: 'hello-wired',
-			args: { $ref: 'dom!hello' }
+			module: 'app/hello-wired',
+			args: { $ref: 'dom.first!hello' }
 		},
 
 		// Invoke the sayHello method on the instance after it is
@@ -100,60 +95,17 @@ And finally, let's create a page for our little app
 <!DOCTYPE HTML>
 <html>
 <head>
-	<title>Hello wire()d!</title>
-	<script type="text/javascript">
-        (function(g) {
-            // This demo works with either curl or requirejs AMD loader.
-            //
-            // To use with curl:
-            // 1. Load the page :)
-            //
-            // To use with requirejs
-            // 1. Load the page with '#requirejs' appended to the url
-            // e.g. path/to/hello-wired/#requirejs
-            // Remember that some browsers will not automatically reload the page
-            // if you just append a new hash, so you may have to click reload manually.
+    <title>Hello wire()d!</title>
 
-    		// Configure AMD loader paths
-    		var config = g.curl = g.require = {
-                apiName: 'require', // curl: this tells curl to register its global name as "require"
-    			baseUrl: 'js',
-                paths: {
-                    wire: 'wire/wire'
-                },
-                packages: [
-                    { name: 'curl', location: 'curl/src/curl', path: 'curl/src/curl', lib: '.', main: 'curl' },
-                    { name: 'when', location: 'wire/support/when', path: 'wire/support/when', lib: '.', main: 'when' }
-                ]
-    		};
-
-            var loader;
-            if(g.location.hash === '#requirejs') {
-                // RequireJS needs a path entry for its own domReady
-                config.paths['domReady'] = 'requirejs/domReady';
-                loader = 'js/requirejs/require.js';
-            } else {
-                loader = 'js/curl/src/curl.js';
-            }
-
-            document.write('<script type="text/javascript" src="' + loader + '"></sc' + 'ript>');
-
-        })(window);
-	</script>
-
-	<!-- Wire the Hello wire()d spec to create the app -->
-	<script type="text/javascript">
-		// Use wire as an AMD plugin to load the wiring spec, which
-		// will set the app into motion.
-		require(['wire!hello-wired-spec']);
-	</script>
+    <script src="lib/curl/src/curl.js"></script>
+    <script src="app/run.js"></script>
 </head>
 
 <body>
-	<header>
-		<!-- Message will go here -->
-		<h1 id="hello"></h1>
-	</header>
+    <header>
+        <!-- Message will go here -->
+        <h1 class="hello"></h1>
+    </header>
 </body>
 </html>
 ```
@@ -166,21 +118,33 @@ When you load this page in a browser, you'll see the text "Hello! I haz been wir
 
 So, what happened when we loaded the page?  Let's start with two interesting parts of the page.  First, there is a script tag to load [curl.js](https://github.com/unscriptable/curl/), an AMD loader--wire.js uses the loader to load AMD style modules.
 
+Immediately after that, there is another script tag that loads `app/run.js` which configures the loader and sets everything in motion.
+
 ```html
 <!-- AMD Loader, in this case curl.js -->
-<script type="text/javascript" src="js/src/curl/curl.js"></script>
+<script src="lib/curl/src/curl.js"></script>
+<script src="app/run.js"></script>
 ```
 
-Then, there is a call to the loader.  Wire.js can be used as either an AMD loader plugin or as an AMD module.  In this case, we're using it as an AMD plugin.  In particular, we're using wire.js to load and process the wiring spec defined in the AMD module named `hello-wired-spec`.
+## run.js - The boostrap
 
-```html
-<!-- Wire the Hello wire()d spec to create the app -->
-<script type="text/javascript">
-	curl(['wire!hello-wired-spec']);
-</script>
+The `run.js` script simply sets up the AMD loader config, and then calls the loader.  Wire.js can be used as either an AMD loader plugin or as an AMD module.  In this case, we're using it as an AMD plugin.  In particular, we're using wire.js to load and process the wiring spec defined in the AMD module whose id is `app/main`.
+
+```js
+var config = {
+    packages: [
+        { name: 'curl', location: 'lib/curl/src/curl', main: 'curl' },
+        { name: 'wire', location: 'lib/wire', main: 'wire' },
+        { name: 'when', location: 'lib/when', main: 'when' },
+        { name: 'meld', location: 'lib/meld', main: 'meld' },
+        { name: 'poly', location: 'lib/poly', main: 'poly' }
+    ]
+};
+
+curl(config, ['wire!app/main']);
 ```
 
-## The Wiring Spec
+## main.js - The wiring spec
 
 Now let's walk through the wiring spec to see what happens when wire.js processes it.  First, there is the standard AMD module define wrapper:
 
@@ -206,12 +170,12 @@ helloWired: {
 
 	// The hello-world module returns a constructor function, which
 	// wire.js will call to create the instance, passing a single
-	// parameter, the DOM Node whose id is "hello".  This uses
+	// parameter, the first DOM Node with the CSS class "hello".  This uses
 	// JSON Reference syntax along with the `dom!` resolver provided
 	// by the `wire/dom` plugin below.
 	create: {
 		module: 'hello-wired',
-		args: { $ref: 'dom!hello' }
+		args: { $ref: 'dom.first!.hello' }
 	},
 	
 	// Invoke the sayHello method on the instance after it is
@@ -235,7 +199,7 @@ plugins: [
 	// The debug plugin outputs wiring progress and diagnostic info
 	// to the console
 	{ module: 'wire/debug' },
-	// Load the basic wire.js dom plugin, which provides the `dom!`
+	// Load the basic wire.js dom plugin, which provides the `dom.first!`
 	// resolver used above.
 	{ module: 'wire/dom' }
 ]
@@ -243,22 +207,22 @@ plugins: [
 
 The array has a single element, which is an object.  That object *does* use one of wire.js's keywords, `module`.  In this case, wire.js will load the AMD module `wire/dom`.  So the result is an array named `plugins` with a single element whose value is the result of loading the module `wire/dom`.
 
-That AMD module just happens to be a wire.js plugin.  Plugins can provide several types of features, but in this case, the `wire/dom` plugin provides a *reference resolver* for DOM nodes.  Reference resolvers provide a way to resolve references to other *things*, like other objects in the wiring spec, or, in this case, DOM nodes on the page, and it does so without your having to worry about DOMReady.
+That AMD module just happens to be a wire.js plugin.  Plugins can provide several types of features, but in this case, the `wire/dom` plugin provides several *reference resolvers* for DOM nodes.  Reference resolvers provide a way to resolve references to other *things*, like other objects in the wiring spec, or, in this case, DOM nodes on the page, and it does so without your having to worry about DOMReady.
 
 ## Ok, Now Back to Those Arguments
 
-You probably guessed that there is some relationship between the `wire/dom` plugin and the `{ $ref: 'dom!hello' }` bit in the `helloWired` object.  Yep, there is.  When instantiating the `helloWired` object, wire.js will pass its constructor a single parameter (it is also possible to pass multiple parameters using an array, but let's keep it simple for now):
+You probably guessed that there is some relationship between the `wire/dom` plugin and the `{ $ref: 'dom.first!.hello' }` bit in the `helloWired` object.  Yep, there is.  When instantiating the `helloWired` object, wire.js will pass its constructor a single parameter (it is also possible to pass multiple parameters using an array, but let's keep it simple for now):
 
 ```javascript
-	args: { $ref: 'dom!hello' }
+	args: { $ref: 'dom.first!.hello' }
 ```
 
-That single parameter is a reference to a DOM Node whose `id="hello"`.  This is Dependency Injection at work.  The `hello-wired` instance needs a DOM Node to do it's job, and we have supplied one by referencing it using the `wire/dom` plugin's `dom!` reference resolver.
+That single parameter is a reference to a DOM Node whose `class="hello"`.  This is Dependency Injection at work.  The `hello-wired` instance needs a DOM Node to do it's job, and we have supplied one by referencing it using the `wire/dom` plugin's `dom.first!` reference resolver.
 
 You can think of this as:
 	
 ```javascript
-	new HelloWired(document.getElementById("hello"))
+	new HelloWired(document.querySelector(".hello"))
 ```
 	
 but you'd also need to add your own DOMReady wrapper/check, which wire.js gives you for free.
@@ -283,7 +247,7 @@ Parameters don't have to be references.  For example, we could have just as easi
 	
 ## Finally, a Note on Order
 
-Wiring specs are *declarative*, and thus order of things in a wiring spec doesn't matter.  For example, in this example, the `wire/dom` plugin was declared after the `{ $ref: 'dom!hello' }` reference.  That's no problem.  Wire.js ensures that the plugin is ready before resolving the DOM Node reference.
+Wiring specs are *declarative*, and thus order of things in a wiring spec doesn't matter.  For example, in this example, the `wire/dom` plugin was declared after the `{ $ref: 'dom.first!.hello' }` reference.  That's no problem.  Wire.js ensures that the plugin is ready before resolving the DOM Node reference.
 
 Also notice that we didn't have to write any code to wait for DOM Ready.  Again, wire.js ensures that the DOM Node reference is resolved only after the DOM is indeed ready.
 
