@@ -8,7 +8,8 @@ To run the demo:
 
 1. git clone https://github.com/briancavalier/hello-wire.js
 1. cd hello-wire.js
-1. open `index.html` in your browser
+1. `npm start`
+1. open `localhost:8000` in your browser
 
 # Simple and Ridiculous Example - Hello wire()d!
 
