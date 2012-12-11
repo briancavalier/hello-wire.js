@@ -27,9 +27,14 @@
 	],
 	"dependencies": {},
 	"devDependencies": {
-		"express": ""
+		"express": "",
+		"buster": "~0.6",
+		"buster-amd": ""
 	},
 	"scripts": {
+		"test": "buster test -e node -r specification",
+		"test-all": "buster test -r specification",
+		"test-server": "buster server",
 		"start": "node bin/server"
 	}
 }

@@ -18,7 +18,7 @@ define({
 		// JSON Reference syntax along with the `dom!` resolver provided
 		// by the `wire/dom` plugin below.
 		create: {
-			module: 'app/hello-wired',
+			module: 'app/HelloWired',
 			args: { $ref: 'dom.first!.hello' }
 		},
 
