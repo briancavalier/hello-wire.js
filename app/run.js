@@ -1,6 +1,9 @@
 (function(curl) {
 
 	var config = {
+		paths: {
+			'wire/domReady': 'lib/curl/src/curl/domReady'
+		},
         packages: [
             { name: 'curl', location: 'lib/curl/src/curl', main: 'curl' },
             { name: 'wire', location: 'lib/wire', main: 'wire' },
