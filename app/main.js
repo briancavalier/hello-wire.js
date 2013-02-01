@@ -7,7 +7,7 @@
 define({
 	// A regular String.  Basic Javascript types are supported directly
 	// in wiring specs, even non-primitives like Date and RegExp.
-	message: "I haz been wired",
+	message: 'I haz been wired',
 
 	// Create an instance of the hello-wired module.
 	helloWired: {
@@ -18,8 +18,8 @@ define({
 		// JSON Reference syntax along with the `dom!` resolver provided
 		// by the `wire/dom` plugin below.
 		create: {
-			module: 'app/hello-wired',
-			args: { $ref: 'dom.first!.hello' }
+			module: 'app/HelloWire',
+			args: { $ref: 'dom:first!.hello' }
 		},
 
 		// Invoke the sayHello method on the instance after it is
@@ -39,6 +39,6 @@ define({
 		{ module: 'wire/debug', trace: true },
 		// Load the basic wire.js dom plugin, which provides the `dom!`
 		// resolver used above.
-		{ module: 'wire/dom' }
+		{ module: 'wire/dom', namespace: 'dom' }
 	]
 });

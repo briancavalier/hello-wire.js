@@ -27,9 +27,9 @@
 	],
 	"dependencies": {},
 	"devDependencies": {
-		"express": ""
+		"serv": ""
 	},
 	"scripts": {
-		"start": "node bin/server"
+		"start": "serv"
 	}
 }

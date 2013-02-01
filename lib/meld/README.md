@@ -27,6 +27,7 @@ myObject.doSomething(1, 2); // Nothing logged
 
 * [API](meld/blob/master/docs/api.md)
 * [Reference](meld/blob/master/docs/reference.md)
+* [Aspects](meld/blob/master/docs/aspects.md)
 
 # Quick Start
 
@@ -71,6 +72,19 @@ Run unit tests in Node:
 `buster test`
 
 # Changelog
+
+### 1.2.0
+
+* `meld.joinpoint()` - [Access the current joinpoint](meld/blob/master/docs/api.md#meldjoinpoint) from any advice type.
+* [Bundled aspects](meld/blob/master/docs/aspects.md):
+	* trace: trace method call entry/return/throw
+	* memoize: simple memoization for methods and functions
+	* cache: configurable caching aspect to do more than simple memoization
+
+### 1.1.0
+
+* Advice can be applied directly to methods on a function.
+* Removed undocumented behavior that implicitly adds constructor prototype advice: to advise a prototype, pass the prototype as the advice target.
 
 ### 1.0.0
 

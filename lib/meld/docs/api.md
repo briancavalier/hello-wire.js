@@ -10,6 +10,8 @@
 1. [Adding Multiple Advices](#adding-multiple-advices)
 	* [meld.add](#meldadd)
 1. [Removing Method Advice](#removing-method-advice)
+1. [Accessing the Joinpoint](#accessing-the-joinpoint)
+	* [meld.joinpoint](#meldjoinpoint)
 1. [Constructor-specific Info](#constructor-specific-info)
 
 # Adding Advice
@@ -175,7 +177,9 @@ In the specific case of a constructor, the newly constructed instance acts as th
 
 # Adding Multiple Advices
 
-Meld.js allows you to add any number of advices to a method, function, or constructor.  In addition to adding them individually, as [shown here](api.md#advising-methods), using the individual advice methods (e.g. meld.before, meld.after, etc.), you can also add several advices at once using `meld.add()`.
+Meld.js allows you to add any number of advices to a method, function, or constructor.  In addition to adding them individually, as [shown here](#advising-methods), using the individual advice methods (e.g. meld.before, meld.after, etc.), you can also add several advices at once using `meld.add()`.
+
+For example, the [bundled aspects](aspects.md) are implemented this way, and can be added using `meld.add()`.
 
 ## meld.add
 
@@ -209,6 +213,21 @@ Adds multiple advices to the supplied function or constructor.
 # Removing Method Advice
 
 See the [Removing Method Advice](reference.md#removing-method-advice) section of the Reference doc.
+
+# Accessing the Joinpoint
+
+[Around advice](#meldaround) receives the current [joinpoint](reference.md#joinpoint) as a parameter.  Other advice types can use `meld.joinpoint()` to retrieve the current joinpoint.
+
+## meld.joinpoint
+
+```js
+function myBeforeAdvice() {
+	var joinpoint = meld.joinpoint();
+	// Use joinpoint fields as necessary
+}
+```
+
+**IMPORTANT:** The returned joinpoint is only valid within the advice function where it was retrieved by calling `meld.joinpoint`.  You should not cache the joinpoint returned by `meld.joinpoint()` and attempt to use it outside of an advice function, or in different advice functions from that which it was originally retrieved.
 
 # Constructor-specific Info
 

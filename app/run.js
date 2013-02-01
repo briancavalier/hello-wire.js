@@ -1,4 +1,4 @@
-(function(curl) {
+define(function() {
 
 	var config = {
         packages: [
@@ -12,4 +12,4 @@
 
 	curl(config, ['wire!app/main']);
 
-})(curl);
+});
