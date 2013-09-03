@@ -5,7 +5,7 @@ var http, express, path, host, port, app;
 http = require('http');
 express = require('express');
 
-path = process.env.PWD;
+path = process.cwd();
 host = '127.0.0.1';
 port = process.argv[2] || 8000;
 
