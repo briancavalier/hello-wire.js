@@ -14,7 +14,7 @@ define({
 
 		// The hello-world module returns a constructor function, which
 		// wire.js will call to create the instance, passing a single
-		// parameter, the DOM Node whose id is "hello".  This uses
+		// parameter, the DOM Node whose class is "hello".  This uses
 		// JSON Reference syntax along with the `dom!` resolver provided
 		// by the `wire/dom` plugin below.
 		create: {
